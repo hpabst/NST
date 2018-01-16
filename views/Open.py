@@ -2,11 +2,13 @@ from PyQt5 import QtCore, QtGui, QtWidgets
 import threading
 import time
 import numpy as np
+import gc
 
 class Open(object):
 
     def __init__(self, nst):
         self.nst = nst
+        self.active = False
         return
 
 
@@ -20,6 +22,8 @@ class Open(object):
         sizePolicy.setVerticalStretch(0)
         sizePolicy.setHeightForWidth(MainWindow.sizePolicy().hasHeightForWidth())
         MainWindow.setSizePolicy(sizePolicy)
+        MainWindow.setMinimumSize(QtCore.QSize(1046, 901))
+        MainWindow.setMaximumSize(QtCore.QSize(1046, 901))
         self.centralwidget = QtWidgets.QWidget(MainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.lbl_content_image = QtWidgets.QLabel(self.centralwidget)
@@ -139,6 +143,72 @@ class Open(object):
         self.plbl_gen_image.setText("")
         self.plbl_gen_image.setPixmap(QtGui.QPixmap("C:/Users/bende/Pictures/dflt.png"))
         self.plbl_gen_image.setObjectName("plbl_gen_image")
+        self.lbl_nst_status = QtWidgets.QLabel(self.centralwidget)
+        self.lbl_nst_status.setGeometry(QtCore.QRect(350, 813, 361, 20))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lbl_nst_status.sizePolicy().hasHeightForWidth())
+        self.lbl_nst_status.setSizePolicy(sizePolicy)
+        self.lbl_nst_status.setObjectName("lbl_nst_status")
+        self.gb_options = QtWidgets.QGroupBox(self.centralwidget)
+        self.gb_options.setGeometry(QtCore.QRect(40, 450, 191, 121))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.gb_options.sizePolicy().hasHeightForWidth())
+        self.gb_options.setSizePolicy(sizePolicy)
+        self.gb_options.setObjectName("gb_options")
+        self.lbl_content_weight = QtWidgets.QLabel(self.gb_options)
+        self.lbl_content_weight.setGeometry(QtCore.QRect(80, 80, 101, 21))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lbl_content_weight.sizePolicy().hasHeightForWidth())
+        self.lbl_content_weight.setSizePolicy(sizePolicy)
+        self.lbl_content_weight.setObjectName("lbl_content_weight")
+        self.sb_style_weight = QtWidgets.QSpinBox(self.gb_options)
+        self.sb_style_weight.setGeometry(QtCore.QRect(10, 50, 61, 22))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.sb_style_weight.sizePolicy().hasHeightForWidth())
+        self.sb_style_weight.setSizePolicy(sizePolicy)
+        self.sb_style_weight.setMaximum(500)
+        self.sb_style_weight.setProperty("value", 40)
+        self.sb_style_weight.setObjectName("sb_style_weight")
+        self.sb_content_weight = QtWidgets.QSpinBox(self.gb_options)
+        self.sb_content_weight.setGeometry(QtCore.QRect(10, 80, 61, 22))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.sb_content_weight.sizePolicy().hasHeightForWidth())
+        self.sb_content_weight.setSizePolicy(sizePolicy)
+        self.sb_content_weight.setMaximum(500)
+        self.sb_content_weight.setProperty("value", 60)
+        self.sb_content_weight.setObjectName("sb_content_weight")
+        self.lbl_style_weight = QtWidgets.QLabel(self.gb_options)
+        self.lbl_style_weight.setGeometry(QtCore.QRect(80, 50, 101, 21))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lbl_style_weight.sizePolicy().hasHeightForWidth())
+        self.lbl_style_weight.setSizePolicy(sizePolicy)
+        self.lbl_style_weight.setObjectName("lbl_style_weight")
+        self.lbl_content_seed = QtWidgets.QLabel(self.gb_options)
+        self.lbl_content_seed.setGeometry(QtCore.QRect(80, 20, 101, 21))
+        sizePolicy = QtWidgets.QSizePolicy(QtWidgets.QSizePolicy.Fixed, QtWidgets.QSizePolicy.Fixed)
+        sizePolicy.setHorizontalStretch(0)
+        sizePolicy.setVerticalStretch(0)
+        sizePolicy.setHeightForWidth(self.lbl_content_seed.sizePolicy().hasHeightForWidth())
+        self.lbl_content_seed.setSizePolicy(sizePolicy)
+        self.lbl_content_seed.setObjectName("lbl_content_seed")
+        self.sb_content_seed = QtWidgets.QDoubleSpinBox(self.gb_options)
+        self.sb_content_seed.setGeometry(QtCore.QRect(10, 20, 62, 22))
+        self.sb_content_seed.setMaximum(1.0)
+        self.sb_content_seed.setSingleStep(0.1)
+        self.sb_content_seed.setProperty("value", 0.6)
+        self.sb_content_seed.setObjectName("sb_content_seed")
         MainWindow.setCentralWidget(self.centralwidget)
 
         self.retranslateUi(MainWindow)
@@ -157,6 +227,17 @@ class Open(object):
         self.btn_file_save_generated.setText(_translate("MainWindow", "Save Image..."))
         self.pb_training.setFormat(_translate("MainWindow", "%p / %m epochs"))
         self.btn_start_file_transfer.setText(_translate("MainWindow", "Begin Style Transfer"))
+        self.lbl_nst_status.setText(_translate("MainWindow", "Status:"))
+        self.gb_options.setTitle(_translate("MainWindow", "Options"))
+        self.lbl_content_weight.setToolTip(_translate("MainWindow", "<html><head/><body><p>Set weighting for content in calculation of difference between current generated image and input images. A higher weighting will put more emphasis on the content of the image. In original paper, this corresponds to hyperparameter α.</p></body></html>"))
+        self.lbl_content_weight.setText(_translate("MainWindow", "Content Weighting"))
+        self.sb_style_weight.setToolTip(_translate("MainWindow", "<html><head/><body><p>Set weighting for style in calculation of difference between current generated image and input images. A higher weighting will put more emphasis on the style of the image. In original paper, this corresponds to hyperparameter β.</p></body></html>"))
+        self.sb_content_weight.setToolTip(_translate("MainWindow", "<html><head/><body><p>Set weighting for content in calculation of difference between current generated image and input images. A higher weighting will put more emphasis on the content of the image. In original paper, this corresponds to hyperparameter α.</p></body></html>"))
+        self.lbl_style_weight.setToolTip(_translate("MainWindow", "<html><head/><body><p>Set weighting for style in calculation of difference between current generated image and input images. A higher weighting will put more emphasis on the style of the image. In original paper, this corresponds to hyperparameter β.</p></body></html>"))
+        self.lbl_style_weight.setText(_translate("MainWindow", "Style Weighting"))
+        self.lbl_content_seed.setToolTip(_translate("MainWindow", "<html><head/><body><p>Set generated image seeding percentage with content image. 0.00 will begin style transfer with an entirely white noise image, 1.00 will begin with the unaltered content image.</p></body></html>"))
+        self.lbl_content_seed.setText(_translate("MainWindow", "Image Content Seed"))
+        self.sb_content_seed.setToolTip(_translate("MainWindow", "<html><head/><body><p>Set generated image seeding percentage with content image. 0.00 will begin style transfer with an entirely white noise image, 1.00 will begin with the unaltered content image.</p></body></html>"))
 
     def custom_ui_changes(self):
         """
@@ -186,16 +267,25 @@ class Open(object):
         self.btn_start_file_transfer.setEnabled(False)
         self.btn_file_save_generated.setEnabled(False)
         thread = threading.Thread(target=self.nst.neural_style_transfer,
-                                  args=(self.nst.CONTENT_PATH, self.nst.STYLE_PATH))
+                                  kwargs=dict(content_path=self.nst.CONTENT_PATH,
+                                              style_path=self.nst.STYLE_PATH,
+                                              cost_alpha=self.sb_content_weight.value(),
+                                              cost_beta=self.sb_style_weight.value(),
+                                              content_ratio=self.sb_content_seed.value()
+                                              )
+                                  )
         ui_thread = threading.Thread(target=self.update_nst_ui)
         thread.start()
         ui_thread.start()
         return
 
     def update_nst_ui(self):
+        self.active = True
+        self.lbl_nst_status.setText("Status: Initializing VGG16 network.")
         self.pb_training.reset()
         while(self.nst.EPOCH_COMPLETE < 1):
             time.sleep(5)
+        self.lbl_nst_status.setText("Status: Training generated image.")
         while (self.nst.EPOCH_COMPLETE < self.nst.MAX_EPOCH - 1):
             self.pb_training.setValue((self.nst.EPOCH_COMPLETE/self.nst.MAX_EPOCH) * 100)
             latest_gen = self.nst.LATEST_GEN
@@ -203,7 +293,8 @@ class Open(object):
             height, width, channel = lg_clip.shape
             qimg = QtGui.QImage(lg_clip.data, width, height, 3 * width, QtGui.QImage.Format_RGB888)
             self.plbl_gen_image.setPixmap(QtGui.QPixmap(qimg).scaled(300, 300, QtCore.Qt.IgnoreAspectRatio))
-            time.sleep(1)
+            time.sleep(0.5)
+        self.lbl_nst_status.setText("Status: Complete.")
         self.pb_training.setValue(self.pb_training.maximum())
         self.btn_start_file_transfer.setEnabled(True)
         self.btn_file_save_generated.setEnabled(True)

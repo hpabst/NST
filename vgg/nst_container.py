@@ -13,13 +13,15 @@ class NST(object):
     """
 
     def __init__(self, content_path=None, style_path=None, content_ratio=0.6, logdir="tblog/",
-                 outputdir="output/"):
+                 outputdir="output/", cost_alpha = 60, cost_beta = 40):
         """
         :param content_path: Full filepath to content image.
         :param style_path: Full filepath to style image.
         :param content_ratio: Content seeding ratio for initializtion of generated image (range of 0.0-1.0).
         :param logdir: Tensorboard log directory for debugging.
         :param outputdir: Generated image output directory for debugging.
+        :param cost_alpha: Content cost scaling hyperparameter.
+        :param cost_beta: Style cost scaling hyperparameter.
         """
         self.CONTENT_PATH = content_path
         self.STYLE_PATH = style_path
@@ -28,18 +30,30 @@ class NST(object):
         self.LOGDIR = logdir
         self.OUTPUTDIR = outputdir
         self.EPOCH_COMPLETE = 0
-        self.MAX_EPOCH = 2000
+        self.MAX_EPOCH = 1500
         self.PAUSE = False
         self.LATEST_GEN = None
+        self.COST_ALPHA = cost_alpha
+        self.COST_BETA = cost_beta
         return
 
-    def neural_style_transfer(self, content_path, style_path):
+    def neural_style_transfer(self, content_path=None, style_path=None, cost_alpha=None, cost_beta=None, content_ratio=None):
         """
         Compelte neural style transfer between provided content image and style image.
         :param content_path: Full filepath to content image.
         :param style_path: Full filepath to style image.
         :return: Latest trained generated image.
         """
+        if content_path is None:
+            content_path = self.CONTENT_PATH
+        if style_path is None:
+            style_path = self.STYLE_PATH
+        if cost_alpha is None:
+            cost_alpha = self.COST_ALPHA
+        if cost_beta is None:
+            cost_beta = self.COST_BETA
+        if content_ratio is None:
+            content_ratio = self.CONTENT_RATIO
         self.EPOCH_COMPLETE = 0
         self.PAUSE = False
         self.LATEST_GEN = None
@@ -50,8 +64,7 @@ class NST(object):
         # when calculating the cost.
         style_image = self.reshape_and_normalize_image(
             imresize(imread(style_path, mode="RGB"), size=content_image.shape[1:]))
-        generated_image = self.generated_image_base(content_image)
-        generated_image = self.CONTENT_RATIO * generated_image + (1 - self.CONTENT_RATIO) * content_image
+        generated_image = self.generated_image_base(content_image, content_ratio)
         content_model = vgg_model(content_image.shape, weights_path="vgg/vgg16_weights.npz")
         session.run(content_model.get('input').assign(content_image))
         out = content_model.get('conv4_2')
@@ -60,35 +73,26 @@ class NST(object):
         cont_cost = self.content_cost(intermediate_content, intermediate_generated)
         session.run(content_model.get('input').assign(style_image))
         style_cost = self.style_cost(content_model, session)
-        tot_cost = self.total_cost(cont_cost, style_cost)
-        output_path = self.OUTPUTDIR + str(content_path.split("/")[-1]) + str(style_path.split("/")[-1])
-        # if not os.path.isdir(output_path):
-            # os.makedirs(output_path)
+        tot_cost = self.total_cost(cont_cost, style_cost, alpha = cost_alpha, beta=cost_beta)
         optimizer = tf.train.AdamOptimizer(2.0)
         train_step = optimizer.minimize(tot_cost)
         session.run(tf.global_variables_initializer())
         session.run(content_model.get("input").assign(generated_image))
         print("Starting image training.")
-        try:
-            for i in range(self.MAX_EPOCH):
-                if self.PAUSE:
-                    break
-                session.run(train_step)
-                generated_image = session.run(content_model.get("input"))
-                curr_total, curr_content, curr_style = session.run([tot_cost, cont_cost, style_cost])
-                if i % 20 == 0:
-                    print("Iteration " + str(i) + " :")
-                    print("total cost = " + str(curr_total))
-                    print("content cost = " + str(curr_content))
-                    print("style cost = " + str(curr_style))
-                    self.LATEST_GEN = generated_image + self.VGG16_MEANS
-                print("Epoch " + str(i) + " complete")
-                self.EPOCH_COMPLETE += 1
-        except Exception as e:
-            print(e.args)
-            print(e)
-            sys.exit(-1)
-
+        for i in range(self.MAX_EPOCH):
+            if self.PAUSE:
+                break
+            session.run(train_step)
+            generated_image = session.run(content_model.get("input"))
+            curr_total, curr_content, curr_style = session.run([tot_cost, cont_cost, style_cost])
+            if i % 20 == 0:
+                print("Iteration " + str(i) + " :")
+                print("total cost = " + str(curr_total))
+                print("content cost = " + str(curr_content))
+                print("style cost = " + str(curr_style))
+                self.LATEST_GEN = generated_image + self.VGG16_MEANS
+            print("Epoch " + str(i) + " complete")
+            self.EPOCH_COMPLETE += 1
         return self.LATEST_GEN
 
     def gram_matrix(self, a):
@@ -99,14 +103,14 @@ class NST(object):
         """
         return tf.matmul(a, tf.transpose(a))
 
-    def generated_image_base(self, content_image):
+    def generated_image_base(self, content_image, content_ratio):
         """
         Initialize generated image with white noise and seed with content image.
         :param content_image: Content image.
         :return: Initialized generated image.
         """
         noise_image = np.random.uniform(-20, 20, content_image.shape).astype('float32')
-        noise_image = noise_image * self.CONTENT_RATIO + content_image * (1 - self.CONTENT_RATIO)
+        noise_image = noise_image * (1-content_ratio) + content_image * content_ratio
         return noise_image
 
     def content_cost(self, act_content, act_gener):
